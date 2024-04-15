@@ -1,0 +1,217 @@
+import copy
+
+def defaultPrintBoard(Connect4):
+    print('\u250C\u2500\u2500\u2500'+'\u252C\u2500\u2500\u2500'*(Connect4.width-1)+'\u2510')
+    for i in range(Connect4.height):
+        string=''
+        for j in range(Connect4.width):
+            string+={1:' x \u2502',-1:' o \u2502',0:'   \u2502'}[Connect4.board[Connect4.height-1-i][j]]
+        print('\u2502'+string)
+    finalLine=''
+    for column in range (0, Connect4.width):
+        finalLine+='\u2502 ' + str(column) + ' '
+    finalLine+='\u2502\n\u2514\u2500\u2500\u2500'+'\u2534\u2500\u2500\u2500'*(Connect4.width-1)+'\u2518'
+    print(finalLine)
+    print('Gamelog: '+str(Connect4.gameLog))
+
+class Connect5:
+    def __init__(self, pP, pN, pPparam={}, pNparam={}, height: int=7, width: int=9, printBoard=defaultPrintBoard) -> None:
+        # someone help rename players
+        self.currPlayer=1 # current player
+        self.pP=pP # player positive
+        self.pPpar=pPparam # player positive parameters
+        self.pN=pN # player negative
+        self.pNpar=pNparam # player negative parameters
+
+        self.printBoard=lambda: printBoard(self)
+        
+        self.board=[[0 for column in range(0, width)] for row in range(0, height)]
+        self.height=height
+        self.width=width
+        self.gameLog=[]
+        self.winner=None
+        self.game()
+
+    def game(self) -> None:
+        self.printBoard()
+        while True:
+            if self.currPlayer==1:
+                ai=self.pP(self, **self.pPpar)
+            else:
+                ai=self.pN(self, **self.pNpar)
+            column=ai.move()
+            self.makeMove(column)
+            self.printBoard()
+            if self.winCheck():
+                self.winner=self.currPlayer
+                print("Winner: " + str(self.currPlayer))
+                return
+            if self.tieCheck():
+                self.winner=0
+                print("Tie")
+                return
+            self.currPlayer*=-1
+
+    def makeMove(self, column):
+        for row in range(0, self.height):
+            if self.board[row][column]==0:
+                self.board[row][column]=self.currPlayer
+                self.gameLog.append(column)
+                return
+        print('Error: full column')
+    
+    def winCheck(self):
+        for row in range(0, len(self.board)): # horizontals
+            for column in range(0, len(self.board[0])-4):
+                if self.currPlayer == self.board[row][column] == self.board[row][column+1] == self.board[row][column+2] == self.board[row][column+3] == self.board[row][column+4]:
+                    return True
+        for row in range(0, len(self.board)-4): # verticals
+            for column in range(0, len(self.board[0])):
+                if self.currPlayer == self.board[row][column] == self.board[row+1][column] == self.board[row+2][column] == self.board[row+3][column] == self.board[row+4][column]:
+                    return True
+        for row in range(0, len(self.board)-4): # diagonals
+            for column in range(0, len(self.board[0])-4):
+                # /
+                if self.currPlayer == self.board[row][column] == self.board[row+1][column+1] == self.board[row+2][column+2] == self.board[row+3][column+3] == self.board[row+4][column+4]:
+                    return True
+                # \
+                if self.currPlayer == self.board[row+4][column] == self.board[row+3][column+1] == self.board[row+2][column+2] == self.board[row+1][column+3] == self.board[row][column+4]:
+                    return True
+        return False
+
+    def tieCheck(self):
+        if len(self.gameLog)==self.height*self.width:
+            return True
+        return False
+
+class DumBot:
+    def __init__(self, game):
+        self.game=game
+        self.board=self.game.board
+    
+    def move(self):
+        for column in range(0, len(self.board[0])):
+            if self.board[-1][column]==0:
+                return column
+        print('Error: full board')
+
+class HumanBot:
+    def __init__(self, game):
+        self.possibleMoves=[str(c) for c in range(len(game.board[0])) if game.board[-1][c]==0]
+        pass
+
+    def move(self):
+        column=""
+        while not(column in self.possibleMoves):
+            column=input('Type a column: ')
+        return int(column)
+
+class LinearScorer:
+    def __init__(self, board, linearKey=lambda line: 0 if ((1 in line) and (-1 in line)) else sum(line)) -> None:
+        self.board=board
+        self.height=len(board)
+        self.width=len(board[0])
+        self.linearKey=linearKey
+
+    def score(self):
+        score=0
+        for i in range (self.height):
+            for j in range (self.width-4):
+                line=[self.board[i][j],self.board[i][j+1],self.board[i][j+2],self.board[i][j+3],self.board[i][j+4]]
+                score+=self.linearKey(line=line)
+        for i in range (self.height-4):
+            for j in range (self.width):
+                line=[self.board[i][j],self.board[i+1][j],self.board[i+2][j],self.board[i+3][j],self.board[i+4][j]]
+                score+=self.linearKey(line=line)
+        for i in range (self.height-4):
+            for j in range (self.width-4):
+                line=[self.board[i][j],self.board[i+1][j+1],self.board[i+2][j+2],self.board[i+3][j+3],self.board[i+4][j+4]]
+                score+=self.linearKey(line=line)
+                line=[self.board[i+4][j],self.board[i+3][j+1],self.board[i+2][j+2],self.board[i+1][j+3],self.board[i][j+4]]
+                score+=self.linearKey(line=line)
+        return score
+
+class RootMinimax:
+    def __init__(self, game, depth: int=6, scorer=LinearScorer) -> None:
+        self.board=game.board[:][:]
+        self.depth=depth
+        self.scorer=scorer
+        self.currPlayer=game.currPlayer
+        self.gameLen=len(game.gameLog)
+
+    def move(self) -> int:
+        possibleMoves=[c for c in range(len(self.board[0])) if self.board[-1][c]==0]
+        scores={}
+        for move in possibleMoves:
+            tempBoard=copy.deepcopy(self.board[:][:])
+            for row in range(0, len(tempBoard)):
+                if tempBoard[row][move]==0:
+                    tempBoard[row][move]=self.currPlayer
+                    break
+            c=ChildMinimax(board=tempBoard, depth=self.depth-1, scorer=self.scorer, currPlayer=-self.currPlayer, gameLen=self.gameLen+1)
+            scores[move]=c.score()
+        if self.currPlayer==1:
+            return max(scores.items(), key=lambda x: x[1])[0]
+        return min(scores.items(), key=lambda x: x[1])[0]
+
+class ChildMinimax:
+    def __init__(self, board, depth, scorer, currPlayer, gameLen) -> None:
+        self.board=board[:][:]
+        self.depth=depth
+        self.scorer=scorer
+        self.currPlayer=currPlayer
+        self.gameLen=gameLen
+
+    def score(self) -> float or int:
+        # base cases
+        if self.winCheck():
+            return -self.currPlayer*float('inf')
+        if self.tieCheck():
+            return 0
+        if self.depth==0:
+            scorer=self.scorer(self.board)
+            return scorer.score()
+
+        # iterate through list of possible children and score each child
+        # we don't need to keep track of which move is best bc this isn't the root
+        possibleMoves=[c for c in range(len(self.board[0])) if self.board[-1][c]==0]
+        scores=[]
+        for move in possibleMoves:
+            tempBoard=copy.deepcopy(self.board)
+            for row in range(0, len(tempBoard)):
+                if tempBoard[row][move]==0:
+                    tempBoard[row][move]=self.currPlayer
+                    break
+            c=ChildMinimax(board=tempBoard, depth=self.depth-1, scorer=self.scorer, currPlayer=-self.currPlayer, gameLen=self.gameLen+1)
+            scores.append(c.score())
+        
+        if self.currPlayer==1:
+            return max(scores)
+        return min(scores)
+
+    def winCheck(self) -> bool:
+        for row in range(0, len(self.board)): # horizontals
+            for column in range(0, len(self.board[0])-4):
+                if -self.currPlayer==self.board[row][column]==self.board[row][column+1]==self.board[row][column+2]==self.board[row][column+3]==self.board[row][column+4]:
+                    return True
+        for row in range(0, len(self.board)-4): # verticals
+            for column in range(0, len(self.board[0])):
+                if -self.currPlayer==self.board[row][column]==self.board[row+1][column]==self.board[row+2][column]==self.board[row+3][column]==self.board[row+4][column]:
+                    return True
+        for row in range(0, len(self.board)-4): # diagonals
+            for column in range(0, len(self.board[0])-4):
+                # /
+                if -self.currPlayer==self.board[row][column]==self.board[row+1][column+1]==self.board[row+2][column+2]==self.board[row+3][column+3]==self.board[row+4][column+4]:
+                    return True
+                # \
+                if -self.currPlayer==self.board[row+4][column]==self.board[row+3][column+1]==self.board[row+2][column+2]==self.board[row+1][column+3]==self.board[row][column+4]:
+                    return True
+        return False
+
+    def tieCheck(self) -> bool:
+        if self.gameLen==len(self.board)*len(self.board[0]):
+            return True
+        return False
+
+if __name__ == "__main__":
+    c=Connect5(HumanBot, RootMinimax, pNparam={'depth':4})
