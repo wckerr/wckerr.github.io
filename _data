@@ -1,1 +1,35 @@
+# main links links
+main:
+  - title: "About"
+    url: /about
 
+  - title: "Connect Four Solver"
+    url: http://connect4.gamesolver.org
+
+side:
+  - title: Solving Connect Four
+    children:
+      - title: "1. Introduction"
+        url: /solving-connect-four/01-introduction/
+      - title: "2. Test protocol"
+        url: /solving-connect-four/02-test-protocol/
+      - title: "3. MinMax algorithm"
+        url: /solving-connect-four/03-minmax/
+      - title: "4. Alpha-beta algorithm"
+        url: /solving-connect-four/04-alphabeta/
+      - title: "5. Move exploration order"
+        url: /solving-connect-four/05-move-exploration-order/
+      - title: "6. Bitboard"
+        url: /solving-connect-four/06-bitboard/
+      - title: "7. Transposition table"
+        url: /solving-connect-four/07-transposition-table
+      - title: "8. Iterative deepening"
+        url: /solving-connect-four/08-iterative-deepening/
+      - title: "9. Anticipate losing moves"
+        url: /solving-connect-four/09-anticipate-losing-moves/
+      - title: "10. Better move ordering"
+        url: /solving-connect-four/10-better-move-ordering/
+      - title: "11. Optimized transposition table"
+        url: /solving-connect-four/11-optimized-transposition-table/
+      - title: "12. Lower bound transposition table"
+        url: /solving-connect-four/12-lower-bound-transposition-table/ 
